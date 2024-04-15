@@ -6,14 +6,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/julienschmidt/httprouter"
+	healthcheck "github.com/s-yakubovskiy/devops_test/pkg/faraway-healthchecks"
+	farawaymetrics "github.com/s-yakubovskiy/devops_test/pkg/faraway-metrics"
 	"go.uber.org/zap"
-	"time"
 )
 
 type server struct {
-	redis redis.UniversalClient
+	redis  redis.UniversalClient
 	logger *zap.Logger
 }
 
@@ -30,13 +33,18 @@ func main() {
 	})
 
 	srv := &server{
-		redis: rdb,
+		redis:  rdb,
 		logger: logger,
 	}
 
 	router := httprouter.New()
-
+	metricsServer := farawaymetrics.NewMetricsServer()
+	router.Handler("GET", "/metrics", metricsServer.Handler())
 	router.GET("/", srv.indexHandler)
+
+	// Add health check endpoints
+	router.Handler("GET", "/live", healthcheck.Handler())
+	router.Handler("GET", "/ready", healthcheck.Handler())
 
 	logger.Info("server started on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

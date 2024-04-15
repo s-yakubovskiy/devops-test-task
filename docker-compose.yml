@@ -1,0 +1,25 @@
+services:
+  web:
+    image: docker.io/yharwyn/faraway-webapi:1.0.0
+    build:
+      context: .
+      dockerfile: ./.faraway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - faraway-net
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - faraway-net
+
+networks:
+  faraway-net:
+    driver: bridge
